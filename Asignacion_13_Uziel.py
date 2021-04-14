@@ -1,4 +1,4 @@
-import random,math,os
+import random,math,os,sys,pygame
 
 class Vertice:
     def __init__(self,Numero,CoordX,CoordY,AnguloX):
@@ -73,8 +73,8 @@ class Vertice:
 
     def PuntosMenoresAB(self,Puntos,ExtIzq,ExtDer):
     	AuxMenores=[]
-    	for i in range(0,len(Puntos)):
-    		if Puntos[i].CoordX
+    	'''for i in range(0,len(Puntos)):
+    		if Puntos[i].CoordX'''
     '''-----------------------------------------------------------------------------
     Nombre del método: CalcularAngulo
     Objetivo/propósito: Calcular el ángulo respecto al punto menor y el Eje X
@@ -127,6 +127,7 @@ class Vertice:
                 CoHu.append(Extraido)
                 CoHu.append(Puntos[i])
                 i+=1
+
     def Quickhull(self,Puntos,CoHu):
     	MenorEjeX,MayorEjeX=Puntos[0].ExtremosX(Puntos)
     	MinYRecta=Puntos[0].PuntoMenor(Puntos)
@@ -170,6 +171,34 @@ def BusquedaSecuencial(Puntos,Pos,PMenor):
             Pos=contador #Se guarda la posición donde se encontró el objeto
         contador+=1
     return Pos
+
+def Pinta(dimensiones,Negro,Blanco,CoHu):
+    index=0
+    sig=1
+    pygame.init()
+    Pantalla=pygame.display.set_mode(dimensiones)
+    pygame.display.set_caption("Convex-Hull")
+    hecho=False
+    reloj=pygame.time.Clock()
+    while not hecho:
+        for evento in pygame.event.get():
+            if evento.type==pygame.QUIT: hecho=True
+        if sig==len(CoHu): sig=0
+        if index<len(CoHu):
+            NewXOrigin=CoHu[index].CoordX+350
+            NewYOrigin=CoHu[index].CoordY+300
+            NewXDestination=CoHu[sig].CoordX+350
+            NewYDestination=CoHu[sig].CoordY+300
+            Pantalla.fill(Blanco)
+            pygame.draw.line(Pantalla,Negro,[NewXOrigin,NewYOrigin],[NewXDestination,NewYDestination],2)
+            pygame.display.flip()
+            reloj.tick(60)
+            index+=1
+            sig+=1
+        #else: hecho=True
+    input("Pulse una tecla para continuar...\n")
+    pygame.quit()
+    
 '''-----------------------------------------------------------------------------
 Nombre de la función: Menu
 Objetivo/propósito: Mostrar las opciones disponibles del programa y seleccionar una de ellas
@@ -190,6 +219,9 @@ def Menu():
     return X
 
 def Main():
+    dimensiones=(700,700)
+    Negro=(0,0,0)
+    Blanco=(255,255,255)
     CoordX=[]
     CoordY=[]
     Puntos=[]
@@ -219,6 +251,7 @@ def Main():
             print("Solución en lista ->",NumPuntosCH)
             print("\nInformación de cada vertice de la envolvente convexa:")
             for Vertex in CoHu: Vertex.InfoVertice()
+            Pinta(dimensiones,Negro,Blanco,CoHu)
         elif Opcion==4:
         	MenorEjeX,MayorEjeX=Puntos[0].ExtremosX(Puntos)
         	print("Extremo menor en el eje X",MenorEjeX)
@@ -237,3 +270,24 @@ def Main():
             os.system('cls')
 
 Main()
+'''
+pygame.init()
+Negro=(0,0,0)
+Blanco=(255,255,255)
+x0=0+350
+y0=0+300
+x1=100+350
+y1=100+300
+dimensiones=(700,600)
+Pantalla=pygame.display.set_mode(dimensiones)
+pygame.display.set_caption("Convex-Hull")
+hecho=False
+reloj=pygame.time.Clock()
+while not hecho:
+    for evento in pygame.event.get():
+        if evento.type==pygame.QUIT: hecho=True
+    Pantalla.fill(Blanco)
+    pygame.draw.line(Pantalla,Negro,[x0,y0],[x1,y1],5)
+    pygame.display.flip()
+    reloj.tick(60)
+pygame.quit()'''
