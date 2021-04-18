@@ -71,10 +71,16 @@ class Vertice:
     				ExtremoDerecho=(ExtMayorX,ExtMayorY)
     	return ExtremoIzquierdo,ExtremoDerecho
 
-    def PuntosMenoresAB(self,Puntos,ExtIzq,ExtDer):
-    	AuxMenores=[]
-    	'''for i in range(0,len(Puntos)):
-    		if Puntos[i].CoordX'''
+    def PuntosSobreRecta(self,PtA,PtB,PtC):
+        Res=self.Distancia(PtA,PtB,PtC)
+        if Res>0: return True
+        else: return False
+
+    def NuevaNube(self,PtA,PtB,Puntos):
+        PuntosNuevos=[]
+        for Pt in Puntos:
+            if self.PuntosSobreRecta(PtA,PtB,Pt): PuntosNuevos.append(Pt)
+        return PuntosNuevos
     '''-----------------------------------------------------------------------------
     Nombre del método: CalcularAngulo
     Objetivo/propósito: Calcular el ángulo respecto al punto menor y el Eje X
@@ -128,9 +134,43 @@ class Vertice:
                 CoHu.append(Puntos[i])
                 i+=1
 
+    def Distancia(self,PtA,PtB,PtC):
+        ResY=PtB[1]-PtA[1]
+        ResX=PtB[0]-PtA[0]
+        dCAy=PtC.CoordY-PtA[1]
+        dCAx=PtC.CoordX-PtA[0]
+        return ResX*dCAy-ResY*dCAx
+
+    def PuntoLejano(self,PtA,PtB,Puntos):
+        Index=0
+        i=1
+        Aux=self.Distancia(PtA,PtB,Puntos[Index])
+        DistPtC=abs(Aux)
+        while i<len(Puntos):
+            Aux=self.Distancia(PtA,PtB,Puntos[i])
+            DistAux=abs(Aux)
+            if DistPtC<DistAux:
+                Index=i
+                DistPtC=DistAux
+            i+=1
+        return Index
+
     def Quickhull(self,Puntos,CoHu):
-    	MenorEjeX,MayorEjeX=Puntos[0].ExtremosX(Puntos)
-    	MinYRecta=Puntos[0].PuntoMenor(Puntos)
+        MenorEjeX,MayorEjeX=self.ExtremosX(Puntos)
+        #print("Extremo menor en el eje X:",MenorEjeX)
+        #print("Extremo mayor en el eje X:",MayorEjeX)
+        if len(Puntos)>0:
+            PuntoC=Puntos.pop(self.PuntoLejano(MenorEjeX,MayorEjeX,Puntos))
+            #PuntoC.InfoVertice()
+            PtC=(PuntoC.CoordX,PuntoC.CoordY)
+            A=self.NuevaNube(MenorEjeX,PtC,Puntos)
+            B=self.NuevaNube(PtC,MayorEjeX,Puntos)
+            CoHu.append(MenorEjeX)
+            if len(A)>1: self.Quickhull(A,CoHu)
+            CoHu.append(PtC)
+            CoHu.append(MayorEjeX)
+            if len(B)>1: self.Quickhull(B,CoHu)
+        #((Bx-Ax)(Cy-Ay) - (By-Ay)(Cx-Ax)) / sqrt((Bx-Ax)^2 + (By-Ay)^2)
 '''-------------------------------------------------------------------------------------------
 Nombre de la función: CoordAleatorias
 Objetivo/propósito: Generar coordenadas de manera aleatoria
@@ -172,7 +212,7 @@ def BusquedaSecuencial(Puntos,Pos,PMenor):
         contador+=1
     return Pos
 
-def Pinta(dimensiones,Negro,Blanco,CoHu):
+def Pinta(dimensiones,Negro,Blanco,Azul,Naranja,CoHu,Vertices):
     index=0
     sig=1
     pygame.init()
@@ -183,20 +223,13 @@ def Pinta(dimensiones,Negro,Blanco,CoHu):
     while not hecho:
         for evento in pygame.event.get():
             if evento.type==pygame.QUIT: hecho=True
-        if sig==len(CoHu): sig=0
-        if index<len(CoHu):
-            NewXOrigin=CoHu[index].CoordX+350
-            NewYOrigin=CoHu[index].CoordY+300
-            NewXDestination=CoHu[sig].CoordX+350
-            NewYDestination=CoHu[sig].CoordY+300
-            Pantalla.fill(Blanco)
-            pygame.draw.line(Pantalla,Negro,[NewXOrigin,NewYOrigin],[NewXDestination,NewYDestination],2)
-            pygame.display.flip()
-            reloj.tick(60)
-            index+=1
-            sig+=1
-        #else: hecho=True
-    input("Pulse una tecla para continuar...\n")
+        Pantalla.fill(Blanco)
+        pygame.draw.line(Pantalla,Negro,(350,0),(350,700))
+        pygame.draw.line(Pantalla,Negro,(0,350),(700,350))
+        pygame.draw.lines(Pantalla,Naranja,True,CoHu,2)
+        for index in range(0,len(Vertices)): pygame.draw.circle(Pantalla,Azul,Vertices[index],3)
+        pygame.display.flip()
+        reloj.tick(60)
     pygame.quit()
     
 '''-----------------------------------------------------------------------------
@@ -222,12 +255,15 @@ def Main():
     dimensiones=(700,700)
     Negro=(0,0,0)
     Blanco=(255,255,255)
+    Azul=(0,0,255)
+    Naranja=(239,127,26)
     CoordX=[]
     CoordY=[]
     Puntos=[]
     Angulos=[]
     CoHu=[]
     NumPuntosCH=[]
+    Vertices=[]
     while True:
         if len(Puntos)==0: print("¡ADVERTENCIA! No hay puntos generados. Seleccione la opción 1.")
         Opcion=Menu()
@@ -246,22 +282,64 @@ def Main():
             print("Puntos generados:")
             for Vertex in Puntos: Vertex.InfoVertice()
         elif Opcion==3: #Algoritmo de Graham (Graham's scan)
+            CoHu.clear()
+            NumPuntosCH.clear()
+            Vertices.clear()
+            AuxCH=[]
             Puntos[0].GrahamScan(Puntos,Angulos,CoHu)
-            for Vertex in CoHu: NumPuntosCH.append(Vertex.Numero)
+            IndVer=0
+            for Vertex in Puntos:
+                Coords=(Vertex.CoordX+350,Vertex.CoordY+350)
+                if IndVer<len(CoHu):
+                    NumPuntosCH.append(CoHu[IndVer].Numero)
+                    Coordenadas=(CoHu[IndVer].CoordX+350,CoHu[IndVer].CoordY+350)
+                    AuxCH.append(Coordenadas)
+                    IndVer+=1
+                Vertices.append(Coords)
             print("Solución en lista ->",NumPuntosCH)
             print("\nInformación de cada vertice de la envolvente convexa:")
             for Vertex in CoHu: Vertex.InfoVertice()
-            Pinta(dimensiones,Negro,Blanco,CoHu)
+            Pinta(dimensiones,Negro,Blanco,Azul,Naranja,AuxCH,Vertices)
         elif Opcion==4:
-        	MenorEjeX,MayorEjeX=Puntos[0].ExtremosX(Puntos)
-        	print("Extremo menor en el eje X",MenorEjeX)
-        	print("Extremo menor en el eje X",MayorEjeX)
+            CoHu.clear()
+            NumPuntosCH.clear()
+            CopiaPuntos=Puntos.copy()
+            Vertices.clear()
+            Puntos[0].Quickhull(CopiaPuntos,CoHu)
+            print(CoHu)
+            PtS=0
+            IndVer=0
+            AuxCH=[]
+            while PtS<len(CoHu):
+                for Pt in Puntos:
+                    if Pt.CoordX==CoHu[PtS][0] and Pt.CoordY==CoHu[PtS][1]:
+                        try:
+                            Pos=NumPuntosCH.index(Pt.Numero)
+                            print("Punto duplicado #",Pt.Numero)
+                        except:
+                            NumPuntosCH.append(Pt.Numero)
+                            AuxCH.append(Pt)
+                PtS+=1
+            CoHu.clear()
+            for Vertex in Puntos:
+                Coords=(Vertex.CoordX+350,Vertex.CoordY+350)
+                if IndVer<len(AuxCH):
+                    Coordenadas=(AuxCH[IndVer].CoordX+350,AuxCH[IndVer].CoordY+350)
+                    CoHu.append(Coordenadas)
+                    IndVer+=1
+                Vertices.append(Coords)
+            print("Solución en lista ->",NumPuntosCH)
+            print("\nInformación de cada vertice de la envolvente convexa:")
+            for Vertex in AuxCH: Vertex.InfoVertice()
+            Pinta(dimensiones,Negro,Blanco,Azul,Naranja,CoHu,Vertices)
         elif Opcion==5: #Eliminar todos los puntos
             CoordX.clear()
             CoordY.clear()
             Puntos.clear()
             Angulos.clear()
             CoHu.clear()
+            NumPuntosCH.clear()
+            Vertices.clear()
             os.system('cls')
         elif Opcion==6: break #Salir
         else:
@@ -270,24 +348,3 @@ def Main():
             os.system('cls')
 
 Main()
-'''
-pygame.init()
-Negro=(0,0,0)
-Blanco=(255,255,255)
-x0=0+350
-y0=0+300
-x1=100+350
-y1=100+300
-dimensiones=(700,600)
-Pantalla=pygame.display.set_mode(dimensiones)
-pygame.display.set_caption("Convex-Hull")
-hecho=False
-reloj=pygame.time.Clock()
-while not hecho:
-    for evento in pygame.event.get():
-        if evento.type==pygame.QUIT: hecho=True
-    Pantalla.fill(Blanco)
-    pygame.draw.line(Pantalla,Negro,[x0,y0],[x1,y1],5)
-    pygame.display.flip()
-    reloj.tick(60)
-pygame.quit()'''
